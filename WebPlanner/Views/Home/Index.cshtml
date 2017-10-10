@@ -22,7 +22,10 @@
                     <div id="UsersCount" class="pull-left col-md-3"></div>
                     <div class="col-md-12">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+@if (SignInManager.IsSignedIn(User))
+{
                         <button id="sign" class="btn btn-primary btn-success"><a id="eventUrl" href="/Home/About/" style="color:black;">Подписаться</a></button>
+}
                     </div>
                     </div>
                 <div id="signedUsers" class="small pull-right"></div>
@@ -148,6 +151,7 @@
 
                 $('#modalBody').html(function () {
                     var emph = '';
+                    console.log(event.description);
                     for (var i = 0; i < event.description.length; i++) {
                         emph = emph + event.description[i].key + ' : ' + event.description[i].value + '<br\>';
                     }
@@ -286,6 +290,13 @@
                 $('#NewEvent').trigger('reset');
             }
         });
+
+        e.preventDefault(); // avoid to execute the actual submit of the form.
+    });
+
+    $("#eventUrl").click(function (e) {
+
+        $("#fullCalModal").modal('toggle');
 
         e.preventDefault(); // avoid to execute the actual submit of the form.
     });

@@ -66,12 +66,12 @@ namespace WebPlanner.Controllers
             TimeSpan ts = end.Subtract(start);
             DateTime middleTime = start.AddMinutes(ts.TotalMinutes / 2);
             List<Event> events = await db.Events.Where(p => p.Date.Month == middleTime.Month).Include(f => f.fields).Include("EventUsersSigned.User").ToListAsync();
-            List<FieldView> tempDic = new List<FieldView>();
+          
             List<EventViewJson> result= new List<EventViewJson>();
             foreach (var item in events)
             {
-                tempDic.Clear();
-                foreach(var field in item.fields)
+                List<FieldView> tempDic = new List<FieldView>();
+                foreach (var field in item.fields)
                 {
                     tempDic.Add(new FieldView{ Key=field.Key,Value=field.Value });
                 }
@@ -95,7 +95,7 @@ namespace WebPlanner.Controllers
             return json;
         }
 
-        public async Task<string> signProjectAsync(int id)
+        public async Task signProjectAsync(int id)
         {
             Event eventCalend = db.Events.Find(id);
             ApplicationUser currentUser = await _userManager.GetUserAsync(User);
@@ -117,7 +117,7 @@ namespace WebPlanner.Controllers
                 db.SaveChanges();
             }
             
-            return "u a signed";
+        
         }
     }
 }
