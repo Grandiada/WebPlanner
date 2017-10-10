@@ -1,0 +1,293 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+@using Microsoft.AspNetCore.Identity
+@using WebPlanner.Models
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<br />
+
+<div id="fullCalModal" class="modal fade">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span> <span class="sr-only">close</span></button>
+                <h4 id="modalTitle" class="modal-title"></h4>
+            </div>
+            <div id="modalBody" class="modal-body"></div>
+            <div class="modal-footer">
+                <div class="row">
+                    <div id="UsersCount" class="pull-left col-md-3"></div>
+                    <div class="col-md-12">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button id="sign" class="btn btn-primary btn-success"><a id="eventUrl" href="/Home/About/" style="color:black;">Подписаться</a></button>
+                    </div>
+                    </div>
+                <div id="signedUsers" class="small pull-right"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (SignInManager.IsSignedIn(User))
+{
+    <div class="container">
+        <div class="row">
+            <button type="button" class="btn btn-info btn-lg center-block" data-toggle="modal" data-target="#myModal">
+                <span class="glyphicon glyphicon-plus"></span> Добавить событие в календарь
+            </button>
+            <br />
+            <!-- Modal -->
+            <div id="myModal" class="modal fade" role="dialog">
+                <div class="modal-dialog modal-lg">
+                    <!-- Modal content-->
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal">×</button>
+                            <h4 class="modal-title">Новое событие</h4>
+                        </div>
+
+
+                        <div class="modal-body">
+                            <form id="NewEvent">
+
+                                <!-- TitleEvent -->
+                                <div class="row">
+
+                                    <div class="form-group col-md-6">
+                                        <label class="control-label" for="title">Название</label>
+                                        <input type="text" class="form-control" id="title" name="title" maxlength="50"  required/>
+                                    </div>
+
+                                    <!-- DateEvent -->
+                                    <div class="form-group col-md-3">
+                                        <label class="control-label" for="date">Дата события</label>
+                                        <input type="date" class="form-control" name="date" id="date" min="@DateTime.Now.ToString("yyyy-MM-dd")" value="" required>
+
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label class="control-label" for="MaxUsers">Максимум участников</label>
+                                        <input type="number" class="form-control" name="MaxUsers" id="MaxUsers" min="1" value="" required>
+
+                                    </div>
+                                </div>
+                                <!-- Field -->
+                                <!-- new shit -->
+                                <h3>Поля</h3>
+                                <div class="form-group container row">
+                                    <div class="row clearfix">
+                                        <div class="col-md-9 table-responsive">
+                                            <table class="table table-condensed table-hover" id="tab_logic">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="text-center">
+                                                            Название
+                                                        </th>
+                                                        <th class="text-center">
+                                                            Значение
+                                                        </th>
+                                                        <th class="text-center" style="border-top: 1px solid #ffffff; border-right: 1px solid #ffffff;">
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr id='addr0' data-id="0" class="hidden">
+
+                                                        <td data-name="Key" class="form-group">
+                                                            <input id="Key" class="form-control" type="text" name="Field[0].Key">
+                                                        </td>
+                                                        <td data-name="Value" class="form-group">
+                                                            <input type="text" class="form-control" id="Value" name="Field[0].Value">
+                                                        </td>
+                                                        <td data-name="del">
+                                                            <button nam"del0" class='btn btn-danger glyphicon glyphicon-remove row-remove'></button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <a id="add_row" class="btn btn-default pull-left">Добавить поле</a>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Отмена</button>
+                                    <button id="btnAgregar" type="submit" name="btnAgregar" class="btn btn-success">Создать</button>
+                                </div>
+                            </form>
+
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+<div class="row">
+
+    <div id='calendar'></div>
+
+</div>
+<script>
+    $(document).ready(function () {
+        $('#calendar').fullCalendar({
+            events: {
+                url: '/Event/getEventData'
+            },
+            locale: 'ru',
+            firstDay: 1,
+            editable: true,
+            eventLimit: true,
+            eventClick: function (event, jsEvent, view) {
+                $('#modalTitle').html(event.title);
+
+                $('#modalBody').html(function () {
+                    var emph = '';
+                    for (var i = 0; i < event.description.length; i++) {
+                        emph = emph + event.description[i].key + ' : ' + event.description[i].value + '<br\>';
+                    }
+                    return emph;
+                });
+
+                $('#sign').removeAttr('disabled').removeClass('disabled');
+                $('#eventUrl').attr('href', '/Event/signProjectAsync/' + event.id).html('Подписаться');
+                $('#signedUsers').html(function () {
+                    var emph = 'Участники:<br\>';
+                    console.log(event.usersSubscribedCount);
+                    console.log(event.usernames);
+                    for (var i = 0; i < event.usersSubscribedCount; i++) {
+                        emph = emph + ' ' + event.usernames[i];
+                        if ('@UserManager.GetUserName(User)' == event.usernames[i]) {
+                            $('#sign').attr('disabled', 'disabled').addClass('disabled');
+                            $('#eventUrl').removeAttr('href').html('Вы уже подписаны');
+                        }
+                    }
+                    return emph;
+                });
+                var free = event.maxUsers - event.usersSubscribedCount;
+                 if (free==0) {
+                            $('#sign').attr('disabled', 'disabled').addClass('disabled');
+                            $('#eventUrl').removeAttr('href').html('Закончились места');
+                        }
+                $('#UsersCount').html('Осталось мест: ' + free  + '<br\>из ' + event.maxUsers);
+
+                $('#fullCalModal').modal();
+            }
+
+            // allow "more" link when too many events
+        });
+    });
+    
+
+
+
+    $(document).ready(function () {
+        $("#add_row").on("click", function () {
+            // Dynamic Rows Code
+
+            // Get max row id and set new id
+            var newid = 0;
+            $.each($("#tab_logic tr"), function () {
+                if (parseInt($(this).data("id")) > newid) {
+                    newid = parseInt($(this).data("id"));
+                }
+            });
+            newid++;
+
+            var tr = $("<tr></tr>", {
+                id: "addr" + newid,
+                "data-id": newid
+            });
+
+            // loop through each td and create new elements with name of newid
+            $.each($("#tab_logic tbody tr:nth(0) td"), function () {
+                var cur_td = $(this);
+
+                var children = cur_td.children();
+
+                // add new td and element if it has a nane
+                if ($(this).data("name") != undefined) {
+                    var td = $("<td></td>", {
+                        "data-name": $(cur_td).data("name")
+                    });
+
+                    var c = $(cur_td).find($(children[0]).prop('tagName')).clone().val("");
+                    c.attr("name", 'Field' + '[' + newid + '].' + $(cur_td).data("name"));
+                    c.appendTo($(td));
+                    td.appendTo($(tr));
+                } else {
+                    var td = $("<td></td>", {
+                        'text': $('#tab_logic tr').length
+                    }).appendTo($(tr));
+                }
+            });
+
+            // add delete button and td
+            /*
+                   $("<td></td>").append(
+                       $("<button class='btn btn-danger glyphicon glyphicon-remove row-remove'></button>")
+                           .click(function() {
+                               $(this).closest("tr").remove();
+                           })
+                   ).appendTo($(tr));
+
+                   */
+            // add the new row
+            $(tr).appendTo($('#tab_logic'));
+
+            $(tr).find("td button.row-remove").on("click", function () {
+                $(this).closest("tr").remove();
+            });
+        });
+
+
+
+
+        // Sortable Code
+        var fixHelperModified = function (e, tr) {
+            var $originals = tr.children();
+            var $helper = tr.clone();
+
+            $helper.children().each(function (index) {
+                $(this).width($originals.eq(index).width())
+            });
+
+            return $helper;
+        };
+
+        $(".table-sortable tbody").sortable({
+            helper: fixHelperModified
+        }).disableSelection();
+
+        $(".table-sortable thead").disableSelection();
+
+
+
+        $("#add_row").trigger("click");
+    });
+
+//
+    $("#NewEvent").submit(function (e) {
+
+        var url = "/Event/NewEvent"; // the script where you handle the form input.
+
+        $.ajax({
+            type: "POST",
+            url: url,
+            data: $("#NewEvent").serialize(), // serializes the form's elements.
+            success: function (data) {
+                $("#myModal").modal('toggle');
+                $('#calendar').fullCalendar('refetchEvents');
+                $('#NewEvent').trigger('reset');
+            }
+        });
+
+        e.preventDefault(); // avoid to execute the actual submit of the form.
+    });
+
+</script>
